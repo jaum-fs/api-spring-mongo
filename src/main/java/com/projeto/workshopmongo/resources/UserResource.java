@@ -1,14 +1,23 @@
 package com.projeto.workshopmongo.resources;
 
+import java.net.URI;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import com.projeto.workshopmongo.domain.User;
+import com.projeto.workshopmongo.dto.UserDTO;
 import com.projeto.workshopmongo.services.UserService;
 
 @RestController
@@ -19,8 +28,45 @@ public class UserResource {
 	private UserService service;
 	
 	@GetMapping
-	public ResponseEntity<List<User>> findAll(){
-		return ResponseEntity.ok().body(service.findAll());
+	public ResponseEntity<List<UserDTO>> findAll(){
+		List<User> list = service.findAll();
+		List<UserDTO> listDTO = list.stream().map(x -> new UserDTO(x)).collect(Collectors.toList());
+		return ResponseEntity.ok().body(listDTO);
 	}
+	
+	@GetMapping(value="/{id}")
+	public ResponseEntity<UserDTO> findById(@PathVariable String id){
+		User result = service.findById(id);
+		return ResponseEntity.ok().body(new UserDTO(result));
+	}
+	
+	@PostMapping
+	public ResponseEntity<Void> insert(@RequestBody UserDTO objDto){
+		User result = service.fromDTO(objDto);
+		result = service.insert(result);
+		
+		URI uri = ServletUriComponentsBuilder.fromCurrentRequest().path("{/id}").buildAndExpand(result.getId()).toUri();
+		
+		return ResponseEntity.created(uri).build();
+	}
+	
+	@DeleteMapping(value = "/{id}")
+	public ResponseEntity<UserDTO> delete(@PathVariable String id){
+		service.delete(id);
+		return ResponseEntity.noContent().build();
+	}
+	
+	@PutMapping(value = "/{id}")
+	public ResponseEntity<Void> update(@RequestBody UserDTO objDto, @PathVariable String id){
+		
+		User result = service.fromDTO(objDto);
+		
+		result.setId(id);
+		
+		result = service.update(result);
+		
+		return ResponseEntity.noContent().build();
+	}
+	
 	
 }
